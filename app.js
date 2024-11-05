@@ -18,10 +18,7 @@ app.use(cors());
 
 // MongoDB connection
 const mongoURI = 'mongodb+srv://sachinpitamaasweb:2U8iSnXE8YCrgo5p@cluster0.zj9x2jv.mongodb.net/Pitamaas' || 'mongodb://localhost:27017/Pitamaas';
-mongoose.connect(mongoURI, { 
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-})
+mongoose.connect(mongoURI)
     .then(() => console.log('MongoDB connected'))
     .catch(err => console.error('MongoDB connection error:', err));
 
