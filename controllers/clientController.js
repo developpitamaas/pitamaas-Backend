@@ -388,7 +388,7 @@ const generateUniqueNumericPassword = (length) => {
 // Read the client credentials file once at startup
 let clientCredentials;
 try {
-    clientCredentials = JSON.parse(fs.readFileSync('client_credentials.json'));
+    clientCredentials = JSON.parse(fs.readFileSync('../client_credentials.json'));
 } catch (err) {
     console.error('Error reading client credentials:', err.message);
 }
