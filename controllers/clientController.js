@@ -1099,7 +1099,7 @@ const postRejectedByClient = async (req, res) => {
             if (postResult.recordset.length > 0) {
                 let currentStatus = postResult.recordset[0].UploadedFileStatus;
 
-                if (currentStatus === null) {
+                if (currentStatus === null || currentStatus === 'Pending') {
                     // Update the status to 'Done'
                     await pool.request()
                         .input('clientId', sql.Int, clientId)
