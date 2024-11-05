@@ -124,7 +124,7 @@ const sendMessage = async (req, res) => {
 // };
 
 
-// Create the SelectedFestivals table
+
 // Create the SelectedFestivals table
 const createChatMessagesTable = async (req, res) => {
     try {
@@ -132,34 +132,28 @@ const createChatMessagesTable = async (req, res) => {
 
         // Drop the table if it already exists
         await pool.request().query(`
-        IF OBJECT_ID('SelectedFestivals', 'U') IS NOT NULL 
-            DROP TABLE SelectedFestivals;
+        IF OBJECT_ID('ClientCredentials', 'U') IS NOT NULL 
+            DROP TABLE ClientCredentials;
       `);
 
-        // Create the new SelectedFestivals table
+        // Create the new ClientCredentials table
         await pool.request().query(`
-        CREATE TABLE SelectedFestivals (
+        CREATE TABLE ClientCredentials (
           id INT IDENTITY(1,1) PRIMARY KEY,
           clientID INT,
           socialAccount VARCHAR(255),
-          message VARCHAR(255),
-          festivalType VARCHAR(255),
-          festivalName VARCHAR(255),
-          festivalDate DATE,
-          selected BIT,
-          post BIT,
-          reel BIT,
-          cover BIT
+          username VARCHAR(255),
+          password VARCHAR(255)
         );
       `);
 
         // Send response indicating success
         res.json({
             success: true,
-            message: 'SelectedFestivals table created successfully',
+            message: 'ClientCredentials table created successfully',
         });
     } catch (err) {
-        console.error('Error creating SelectedFestivals table:', err);
+        console.error('Error creating ClientCredentials table:', err);
         res.status(500).send(err.message);
     } finally {
         // Close the SQL connection
@@ -286,40 +280,40 @@ const getActiveClients = async (req, res) => {
         clients.forEach(client => {
             const { ClientID, SocialAccount } = client;
 
-            // If it's clientId 2705, always generate unique credentials
-            if (ClientID === 2705) {
-                const credentials = generateCredentials(ClientID, SocialAccount);
-                credentialMap.set(`${ClientID}_${SocialAccount}`, {
+            // Generate unique credentials if ClientID is 2705
+            const credentials = generateCredentials(ClientID, SocialAccount);
+
+            if (ClientID === 2705 || !credentialMap.has(ClientID)) {
+                credentialMap.set(ClientID, {
                     clientId: ClientID,
                     socialAccounts: [SocialAccount],
                     credentials
                 });
-                return;
-            }
-
-            // For other clientIds, check if the clientId already has credentials stored
-            if (credentialMap.has(ClientID)) {
-                // If it exists, append the socialAccount to the existing credentials object
+            } else {
+                // Append social account if the client already exists in the map
                 const existingData = credentialMap.get(ClientID);
                 if (!existingData.socialAccounts.includes(SocialAccount)) {
                     existingData.socialAccounts.push(SocialAccount);
                 }
-            } else {
-                // If the clientId does not exist, create a new entry
-                const credentials = generateCredentials(ClientID, SocialAccount);
-                credentialMap.set(ClientID, {
-                    clientId: ClientID,
-                    socialAccounts: [SocialAccount], // Store multiple social accounts in an array
-                    credentials
-                });
             }
         });
 
-        // Convert Map to an array for response and file saving
         const clientCredentials = Array.from(credentialMap.values());
 
-        // Save to a JSON file
-        fs.writeFileSync('client_credentials.json', JSON.stringify(clientCredentials, null, 2));
+        // Store generated credentials in the ClientCredentials table
+        for (const entry of clientCredentials) {
+            for (const socialAccount of entry.socialAccounts) {
+                await pool.request()
+                    .input('clientId', sql.Int, entry.clientId)
+                    .input('socialAccount', sql.VarChar(255), socialAccount)
+                    .input('username', sql.VarChar(255), entry.credentials.username)
+                    .input('password', sql.VarChar(255), entry.credentials.password)
+                    .query(`
+                        INSERT INTO ClientCredentials (clientID, socialAccount, username, password)
+                        VALUES (@clientId, @socialAccount, @username, @password);
+                    `);
+            }
+        }
 
         res.json({
             data: clientCredentials,
@@ -330,7 +324,7 @@ const getActiveClients = async (req, res) => {
     } catch (err) {
         res.status(500).send(err.message);
     }
-};
+}
 
 const generateCredentials = (clientId, socialAccount) => {
     // Sanitize the socialAccount name (removing spaces and special characters)
@@ -388,7 +382,7 @@ const generateUniqueNumericPassword = (length) => {
 // Read the client credentials file once at startup
 let clientCredentials;
 try {
-    clientCredentials = JSON.parse(fs.readFileSync('../client_credentials.json'));
+    clientCredentials = JSON.parse(fs.readFileSync('client_credentials.json'));
 } catch (err) {
     console.error('Error reading client credentials:', err.message);
 }
@@ -397,11 +391,20 @@ const login = async (req, res) => {
     const { username, password } = req.body;
 
     try {
-        // Find the client with matching username and password
-        const client = clientCredentials.find(c =>
-            c.credentials.username === username && c.credentials.password === password
-        );
-        console.log(client)
+        let pool = await sql.connect(config);
+
+        // Query the ClientCredentials table for matching credentials
+        let result = await pool.request()
+            .input('username', sql.VarChar(255), username)
+            .input('password', sql.VarChar(255), password)
+            .query(`
+                SELECT clientID, socialAccount 
+                FROM ClientCredentials 
+                WHERE username = @username AND password = @password
+            `);
+
+        const client = result.recordset[0];
+
         if (!client) {
             return res.status(401).json({
                 success: false,
@@ -409,17 +412,18 @@ const login = async (req, res) => {
             });
         }
 
-        // If credentials match, return success response
+        // Successful login response
         res.json({
             success: true,
             message: 'Login successful',
-            clientId: client.clientId,
-            socialAccount: client.socialAccounts
+            clientId: client.clientID,
+            socialAccount: client.socialAccount
         });
     } catch (err) {
         res.status(500).send(err.message);
     }
 };
+
 
 // function to find the Non-Repeated Clients
 
@@ -1314,7 +1318,7 @@ const getUserLoginDetails = async (req, res) => {
     try {
         let pool = await sql.connect(config);
         let result = await pool.request()
-            .query('SELECT * FROM ShortLeaves');
+            .query('SELECT * FROM StafDetails');
         res.json({
             data: result.recordset,
             count: result.recordset.length,
@@ -1326,6 +1330,39 @@ const getUserLoginDetails = async (req, res) => {
         res.status(500).send(err.message);
     }
 }
+
+// Download staff login details as a JSON file
+const downloadStaffLoginDetails = async (req, res) => {
+    try {
+        let pool = await sql.connect(config);
+        let result = await pool.request()
+            .query('SELECT * FROM LoginDetails');
+
+        // Convert result to JSON
+        const jsonData = JSON.stringify(result.recordset, null, 2); // Pretty print JSON
+
+        // Define file path and name
+        const filePath = path.join(__dirname, 'staffLoginDetails.json');
+
+        // Write the JSON data to a file
+        fs.writeFileSync(filePath, jsonData);
+
+        // Set the content type and trigger download
+        res.download(filePath, 'staffLoginDetails.json', (err) => {
+            if (err) {
+                console.error('Error downloading file:', err);
+                res.status(500).send('Could not download the file');
+            }
+
+            // Optionally, you can delete the file after sending
+            fs.unlinkSync(filePath); // Clean up the file
+        });
+
+    } catch (error) {
+        console.error('Error fetching staff login details:', error);
+        res.status(500).send('Internal Server Error');
+    }
+};
 
 // get budget details with social account
 const getBudgetDetails = async (req, res) => {
@@ -2155,5 +2192,6 @@ module.exports = {
     getNextMonthFestivalsBasedOnSocialAccount,
     storeSelectedFestivalAndRemoveFromNotifications,
     getSelectedFestivalsBasedOnSocialAccount,
-    getSelectedFestivals
+    getSelectedFestivals,
+    downloadStaffLoginDetails
 };
