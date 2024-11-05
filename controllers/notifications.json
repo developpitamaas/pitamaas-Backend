@@ -17128,5 +17128,45 @@
     "subject": "Post Approved",
     "message": "Campaign 'General' with Social Account 'Yuktam' has been rejected and status updated to 'rejected'.",
     "timestamp": "2024-10-02T07:53:41.531Z"
+  },
+  {
+    "recipient": 4356,
+    "clientId": 4907,
+    "designerId": 2289,
+    "campaignId": 80120,
+    "keyManagerId": 4356,
+    "subject": "Post Approved",
+    "message": "Campaign 'Festival' with Social Account 'Ek Tek global' has been approved and the status updated to 'Done'.",
+    "timestamp": "2024-11-05T07:45:48.154Z"
+  },
+  {
+    "recipient": 2289,
+    "clientId": 4907,
+    "designerId": 2289,
+    "campaignId": 80120,
+    "keyManagerId": 4356,
+    "subject": "Post Approved",
+    "message": "Campaign 'Festival' with Social Account 'Ek Tek global' has been approved and the status updated to 'Done'.",
+    "timestamp": "2024-11-05T07:45:48.154Z"
+  },
+  {
+    "recipient": 4356,
+    "clientId": 4907,
+    "designerId": 2289,
+    "campaignId": 86335,
+    "keyManagerId": 4356,
+    "subject": "Post Approved",
+    "message": "Campaign 'ChathPooja2024' with Social Account 'Ek Tek global' has been approved and the status updated to 'Done'.",
+    "timestamp": "2024-11-05T09:12:40.687Z"
+  },
+  {
+    "recipient": 2289,
+    "clientId": 4907,
+    "designerId": 2289,
+    "campaignId": 86335,
+    "keyManagerId": 4356,
+    "subject": "Post Approved",
+    "message": "Campaign 'ChathPooja2024' with Social Account 'Ek Tek global' has been approved and the status updated to 'Done'.",
+    "timestamp": "2024-11-05T09:12:40.687Z"
   }
 ]
