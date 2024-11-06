@@ -6,6 +6,7 @@ const clientRoutes = require('./routes/clientRoutes');
 const loginRoutes = require('./routes/loginRoutes');
 const newClientRoutes = require('./routes/newClientRoutes');
 const clientCredentialsRoutes = require('./routes/clientCredentialsRoutes');
+const Notification = require('./routes/Notifications');
 
 const app = express();
 
@@ -31,9 +32,11 @@ app.use('/api', loginRoutes);
 // Use the new client routes
 app.use('/api', newClientRoutes);
 
-
 // Use the new client credentials routes
 app.use('/api', clientCredentialsRoutes);
+
+// use the notification routes
+app.use('/api', Notification);
 
 // get request
 app.get('/', (req, res) => {
