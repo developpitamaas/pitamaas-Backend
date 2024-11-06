@@ -7,6 +7,7 @@ const loginRoutes = require('./routes/loginRoutes');
 const newClientRoutes = require('./routes/newClientRoutes');
 const clientCredentialsRoutes = require('./routes/clientCredentialsRoutes');
 const Notification = require('./routes/Notifications');
+const Feedback = require('./routes/feedbackRoutes')
 
 const app = express();
 
@@ -37,6 +38,9 @@ app.use('/api', clientCredentialsRoutes);
 
 // use the notification routes
 app.use('/api', Notification);
+
+// use the feedback 
+app.use('/api', Feedback);
 
 // get request
 app.get('/', (req, res) => {

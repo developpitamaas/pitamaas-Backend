@@ -1,6 +1,7 @@
 const sql = require('mssql');
 const config = require('../config/dbConfig');
 const Notification = require('../model/Notification');
+const Feedback = require('../model/Feedback');
 
 const getNextMonthName = () => {
     const nextMonth = new Date();
@@ -53,7 +54,7 @@ const getFestivalNotifications = async (req, res) => {
             clientID: client.ClientID,
             socialAccount: client.SocialAccount,
             message: `Select your ${nextMonthName} festive creation!`,
-            festivalType: 'Festival',
+            notificationType: 'Festival',
             festivals: festivals.map(festival => ({
                 festivalName: festival.FesName,
                 festivalDate: festival.FesDate,
@@ -78,6 +79,67 @@ const getFestivalNotifications = async (req, res) => {
     } catch (error) {
         console.error('Error fetching festival notifications:', error);
         res.status(500).json({ error: 'Internal Server Error' });
+    }
+};
+
+// send feedback notifications to clients based on social account when i call it
+const sendFeedbackNotifications = async (req, res) => {
+    try {
+        // Connect to SQL Server
+        let pool = await sql.connect(config);
+
+        // Fetch active clients from the SQL database
+        let memberResult = await pool.request()
+            .query(`SELECT ClientID, SocialAccount FROM clientenrollment WHERE Status = 'Active' ORDER BY SocialAccount ASC`);
+        
+        const clients = memberResult.recordset;
+
+        // Prepare feedback notifications for each client
+        const feedbackNotifications = clients.map(client => ({
+            clientID: client.ClientID,
+            socialAccount: client.SocialAccount,
+            message: `We value your feedback! Please share your thoughts on our services.`,
+            notificationType: 'Feedback',
+            date: new Date()
+        }));
+
+        // Save notifications to MongoDB
+        await Notification.insertMany(feedbackNotifications);
+
+        res.json({
+            message: 'Feedback notifications sent successfully',
+            feedbackNotifications,
+            success: true,
+            count: feedbackNotifications.length,
+        });
+
+        await sql.close();
+    } catch (error) {
+        console.error('Error sending feedback notifications:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+};
+
+// get feedback notifications based on social account
+const getFeedbackNotifications = async (req, res) => {
+    try {
+        const feedbackNotifications = await Notification.find({
+            socialAccount: req.params.socialAccount,
+            notificationType: 'Feedback',
+        });
+
+        res.json({
+            data: feedbackNotifications,
+            count: feedbackNotifications.length,
+            success: true,
+            message: 'Data fetched successfully',
+        });
+    } catch (err) {
+        res.status(500).json({
+            success: false,
+            message: 'An error occurred while fetching the feedback notifications',
+            error: err.message,
+        });
     }
 };
 
@@ -108,5 +170,7 @@ const getNextMonthFestivalsBasedOnSocialAccount = async (req, res) => {
 // Export both functions in a single module
 module.exports = {
     getFestivalNotifications,
+    sendFeedbackNotifications,
+    getFeedbackNotifications,
     getNextMonthFestivalsBasedOnSocialAccount,
 };

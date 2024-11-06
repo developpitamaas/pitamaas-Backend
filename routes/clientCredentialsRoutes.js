@@ -3,7 +3,7 @@
 const express = require('express');
 const router = express.Router();
 
-const { getActiveClients, login } = require('../controllers/ClientCredentials');
+const { getActiveClients, login, sendFeedbackNotifications } = require('../controllers/ClientCredentials');
 
 // Route to fetch active clients
 router.get('/clients/active', getActiveClients);

@@ -5,7 +5,7 @@ const NotificationSchema = new mongoose.Schema({
     clientID: String,
     socialAccount: String,
     message: String,
-    festivalType: String,
+    notificationType: String,
     festivals: [
         {
             festivalName: String,
