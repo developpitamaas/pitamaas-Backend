@@ -17168,5 +17168,25 @@
     "subject": "Post Approved",
     "message": "Campaign 'ChathPooja2024' with Social Account 'Ek Tek global' has been approved and the status updated to 'Done'.",
     "timestamp": "2024-11-05T09:12:40.687Z"
+  },
+  {
+    "recipient": 2269,
+    "clientId": 4907,
+    "designerId": 2289,
+    "campaignId": 86385,
+    "keyManagerId": 2269,
+    "subject": "Post Approved",
+    "message": "Campaign 'ChathPooja2024' with Social Account 'MUSCLIFE' has been rejected and status updated to 'rejected'.",
+    "timestamp": "2024-11-05T09:58:05.065Z"
+  },
+  {
+    "recipient": 2289,
+    "clientId": 4907,
+    "designerId": 2289,
+    "campaignId": 86385,
+    "keyManagerId": 2269,
+    "subject": "Post Approved",
+    "message": "Campaign 'ChathPooja2024' with Social Account 'MUSCLIFE' has been rejected and status updated to 'rejected'.",
+    "timestamp": "2024-11-05T09:58:05.065Z"
   }
 ]
