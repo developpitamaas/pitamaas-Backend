@@ -6,7 +6,7 @@ const FeedbackSchema = new mongoose.Schema({
         type: String, // Change to String if `clientId` is not a reference
         required: true,
     },
-    socrolAccount: {
+    socialAccount: {
         type: String, // String to store socrolAccount details
         required: true,
     },

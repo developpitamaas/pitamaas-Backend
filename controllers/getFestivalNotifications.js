@@ -143,6 +143,7 @@ const getFeedbackNotifications = async (req, res) => {
     }
 };
 
+
 const getNextMonthFestivalsBasedOnSocialAccount = async (req, res) => {
     try {
         const nextMonthName = getNextMonthName();
