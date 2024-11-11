@@ -1318,7 +1318,7 @@ const getUserLoginDetails = async (req, res) => {
     try {
         let pool = await sql.connect(config);
         let result = await pool.request()
-            .query('SELECT * FROM VideoDetails');
+            .query('SELECT * FROM LoginDetailsNew');
         res.json({
             data: result.recordset,
             count: result.recordset.length,

@@ -132,7 +132,7 @@ const getFeedbackNotifications = async (req, res) => {
             data: feedbackNotifications,
             count: feedbackNotifications.length,
             success: true,
-            message: 'Data fetched successfully',
+            message: 'Data fetched successfully for feedback notifications',
         });
     } catch (err) {
         res.status(500).json({
@@ -142,6 +142,8 @@ const getFeedbackNotifications = async (req, res) => {
         });
     }
 };
+
+
 
 
 const getNextMonthFestivalsBasedOnSocialAccount = async (req, res) => {
