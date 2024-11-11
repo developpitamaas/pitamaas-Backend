@@ -647,19 +647,62 @@ const getClientEnrollmentBySocialAccount = async (req, res) => {
 }
 
 // get idea uploader data by client id and SocialAccount
+// const getIdeaUploaderByClientIdAndSocialAccount = async (req, res) => {
+//     try {
+//         const { clientId, socialAccount, } = req.body; // Extract clientId and socialAccount from request body
+
+//         if (!socialAccount) {
+//             return res.status(400).json({
+//                 success: false,
+//                 message: 'clientId and socialAccount are required'
+//             });
+//         }
+
+//         let pool = await sql.connect(config);
+//         let result = await pool.request()
+//             .input('socialAccount', sql.VarChar, socialAccount)
+//             .query(`
+//                 SELECT * 
+//                 FROM IdeaUploader 
+//                 WHERE SocialAccount = @socialAccount 
+//                 AND (UploadedFileStatus = 'Pending' OR UploadedFileStatus IS NULL)
+//                 AND CreativeStatus = 'Done'
+//               `);
+
+//         if (result.recordset.length > 0) {
+//             res.json({
+//                 data: result.recordset,
+//                 count: result.recordset.length,
+//                 success: true,
+//                 message: 'Data fetched successfully'
+//             });
+//         } else {
+//             res.status(404).json({
+//                 success: false,
+//                 message: 'No data found'
+//             })
+//         }
+//     } catch (err) {
+//         res.status(500).send(err.message);
+//     }
+// };
+
+// Get idea uploader data by client id and SocialAccount
 const getIdeaUploaderByClientIdAndSocialAccount = async (req, res) => {
     try {
-        const { clientId, socialAccount, } = req.body; // Extract clientId and socialAccount from request body
+        const { clientId, socialAccount } = req.body; // Extract clientId and socialAccount from request body
 
         if (!socialAccount) {
             return res.status(400).json({
                 success: false,
-                message: 'clientId and socialAccount are required'
+                message: 'clientId and socialAccount are required',
             });
         }
 
         let pool = await sql.connect(config);
-        let result = await pool.request()
+
+        // Step 1: Fetch all data from IdeaUploader based on socialAccount
+        let ideaUploaderResult = await pool.request()
             .input('socialAccount', sql.VarChar, socialAccount)
             .query(`
                 SELECT * 
@@ -667,25 +710,99 @@ const getIdeaUploaderByClientIdAndSocialAccount = async (req, res) => {
                 WHERE SocialAccount = @socialAccount 
                 AND (UploadedFileStatus = 'Pending' OR UploadedFileStatus IS NULL)
                 AND CreativeStatus = 'Done'
-              `);
+                ORDER BY Id DESC
+            `);
 
-        if (result.recordset.length > 0) {
+        let ideaUploaderData = ideaUploaderResult.recordset;
+
+        // Step 2: Check if there are 'General Video' entries with DesignerStatus = 'Done'
+        const generalVideoEntries = ideaUploaderData.filter(
+            (entry) => entry.Type === 'General Video' && entry.DesignerStatus === 'Done'
+        );
+
+        // Step 3: If 'General Video' entries exist, fetch related VideoDetails for each entry
+        for (const entry of generalVideoEntries) {
+            const videoDetailsResult = await pool.request()
+                .input('uploaderId', sql.Int, entry.Id)
+                .query(`
+                    SELECT * 
+                    FROM VideoDetails 
+                    WHERE UploaderId = @uploaderId
+                `);
+
+            // Add VideoDetails data to the entry
+            entry.VideoDetails = videoDetailsResult.recordset;
+        }
+
+        // Calculate count of 'General Video' entries with DesignerStatus 'Done'
+        const generalVideoCount = generalVideoEntries.length;
+
+        // Return the data with count information
+        res.json({
+            data: ideaUploaderData,
+            generalVideoCount, // Count of 'General Video' entries
+            count: ideaUploaderData.length, // Total count of fetched entries
+            success: true,
+            message: 'Data fetched successfully',
+        });
+    } catch (err) {
+        console.error('Error fetching data:', err.message);
+        res.status(500).json({
+            success: false,
+            message: 'Server error, please try again later.',
+        });
+    }
+};
+
+const postCorrectionByClient = async (req, res) => {
+    try {
+        const { postId, clientId, socialAccount, reason } = req.body;
+
+        // Validate required fields
+        if (!postId || !clientId || !socialAccount || !reason) {
+            return res.status(400).json({
+                success: false,
+                message: 'postId, clientId, socialAccount, and reason fields are required.'
+            });
+        }
+
+        // Connect to the database
+        let pool = await sql.connect(config);
+
+        // Update the IdeaUploader table
+        let result = await pool.request()
+            .input('postId', sql.Int, postId)
+            .input('clientId', sql.Int, clientId)
+            .input('socialAccount', sql.VarChar, socialAccount)
+            .input('reason', sql.VarChar, reason)
+            .query(`
+                UPDATE IdeaUploader 
+                SET CorrectionRequired = 1, 
+                    CorrectionReason = @reason, 
+                    UploadedFileStatus = 'correction' 
+                WHERE Id = @postId AND ClientId = @clientId AND SocialAccount = @socialAccount
+            `);
+
+        // Check if the row was affected
+        if (result.rowsAffected[0] > 0) {
             res.json({
-                data: result.recordset,
-                count: result.recordset.length,
                 success: true,
-                message: 'Data fetched successfully'
+                message: 'Correction requirement, reason, and file status updated successfully.'
             });
         } else {
             res.status(404).json({
                 success: false,
-                message: 'No data found'
-            })
+                message: 'No record found with the specified postId, clientId, and socialAccount.'
+            });
         }
     } catch (err) {
-        res.status(500).send(err.message);
+        console.error('Database error:', err.message);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error. Please try again later.'
+        });
     }
-};
+}
 
 // get the idea uploader data by client id and SocialAccount and post id
 const getIdeaUploaderByClientIdAndSocialAccountAndPostId = async (req, res) => {
@@ -2193,5 +2310,6 @@ module.exports = {
     storeSelectedFestivalAndRemoveFromNotifications,
     getSelectedFestivalsBasedOnSocialAccount,
     getSelectedFestivals,
-    downloadStaffLoginDetails
+    downloadStaffLoginDetails,
+    postCorrectionByClient
 };

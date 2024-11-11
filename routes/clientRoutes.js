@@ -43,6 +43,7 @@ const {
     storeSelectedFestivalAndRemoveFromNotifications,
     getSelectedFestivalsBasedOnSocialAccount,
     getSelectedFestivals,
+    postCorrectionByClient,
 } = require('../controllers/clientController');
 
 const router = express.Router();
@@ -92,5 +93,6 @@ router.get('/next-month-festivals-based-on-social-account/:socialAccount', getNe
 router.post('/store-selected-festival-and-remove-from-notifications', storeSelectedFestivalAndRemoveFromNotifications);
 router.get('/selected-festivals-based-on-social-account/:socialAccount', getSelectedFestivalsBasedOnSocialAccount);
 router.get('/selected-festivals', getSelectedFestivals);
+router.post('/post-correction-by-client', postCorrectionByClient);
 
 module.exports = router;
