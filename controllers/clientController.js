@@ -714,7 +714,7 @@ const getIdeaUploaderByClientIdAndSocialAccount = async (req, res) => {
             `);
 
         let ideaUploaderData = ideaUploaderResult.recordset;
-
+        console.log('ideaUploaderResult', ideaUploaderResult);
         // Step 2: Check if there are 'General Video' entries with DesignerStatus = 'Done'
         const generalVideoEntries = ideaUploaderData.filter(
             (entry) => entry.Type === 'General Video' && entry.DesignerStatus === 'Done'
@@ -757,6 +757,7 @@ const getIdeaUploaderByClientIdAndSocialAccount = async (req, res) => {
 const postCorrectionByClient = async (req, res) => {
     try {
         const { postId, clientId, socialAccount, reason } = req.body;
+        console.log('postId, clientId, socialAccount, reason:', postId, clientId, socialAccount, reason);
 
         // Validate required fields
         if (!postId || !clientId || !socialAccount || !reason) {
@@ -768,6 +769,19 @@ const postCorrectionByClient = async (req, res) => {
 
         // Connect to the database
         let pool = await sql.connect(config);
+
+        // Check if the 'CorrectionReason' column exists
+        const columnCheck = await pool.request()
+            .query(`SELECT COLUMN_NAME 
+                    FROM INFORMATION_SCHEMA.COLUMNS 
+                    WHERE TABLE_NAME = 'IdeaUploader' AND COLUMN_NAME = 'CorrectionReason'`);
+
+        // If the column does not exist, add it
+        if (columnCheck.recordset.length === 0) {
+            await pool.request()
+                .query(`ALTER TABLE IdeaUploader ADD CorrectionReason VARCHAR(MAX)`);
+            console.log('CorrectionReason column added.');
+        }
 
         // Update the IdeaUploader table
         let result = await pool.request()
@@ -802,7 +816,8 @@ const postCorrectionByClient = async (req, res) => {
             message: 'Internal server error. Please try again later.'
         });
     }
-}
+};
+
 
 // get the idea uploader data by client id and SocialAccount and post id
 const getIdeaUploaderByClientIdAndSocialAccountAndPostId = async (req, res) => {
@@ -1435,7 +1450,7 @@ const getUserLoginDetails = async (req, res) => {
     try {
         let pool = await sql.connect(config);
         let result = await pool.request()
-            .query('SELECT * FROM LoginDetailsNew');
+            .query('SELECT * FROM Broadcastmanagement ');
         res.json({
             data: result.recordset,
             count: result.recordset.length,
@@ -2222,6 +2237,63 @@ const getPostApprovedByClient = async (req, res) => {
     }
 };
 
+// get the finalBroadcast posts
+const getFinalBroadcast = async (req, res) => {
+    try {
+        let { socialAccount } = req.params;
+        let { month } = req.query; // Accept month from query parameters
+        let selectedYear, selectedMonth;
+
+        const currentDate = new Date();
+        const currentYear = currentDate.getFullYear();
+
+        // Check if the month is provided and valid, else default to the current month
+        if (month && month >= 1 && month <= 12) {
+            selectedMonth = month;
+            selectedYear = currentYear;
+        } else {
+            selectedMonth = currentDate.getMonth() + 1; // JavaScript months are 0-indexed
+            selectedYear = currentYear;
+        }
+
+        // Ensure that the month is always 2 digits (e.g., '05' for May)
+        const formattedMonth = selectedMonth.toString().padStart(2, '0');
+
+        let pool = await sql.connect(config);
+        let result = await pool.request()
+            .input('socialAccount', sql.VarChar(50), socialAccount)
+            .input('selectedYear', sql.Int, selectedYear)
+            .input('formattedMonth', sql.Int, formattedMonth)
+            .query(`
+                SELECT * 
+                FROM IdeaUploader 
+                LEFT JOIN Broadcastmanagement  
+                ON IdeaUploader.id = Broadcastmanagement .UploaderId
+                WHERE IdeaUploader.socialAccount = @socialAccount
+            `);
+
+        console.log(result);
+
+        if (result.recordset.length > 0) {
+            res.json({
+                data: result.recordset,
+                count: result.recordset.length,
+                success: true,
+                message: "Data fetched successfully"
+            });
+        } else {
+            res.json({
+                data: [],
+                count: 0,
+                success: true,
+                message: "No records found for the given social account and date"
+            });
+        }
+    } catch (err) {
+        res.status(500).send({ message: err.message, success: false });
+    }
+};
+
 // // Function to read, filter, and save the filtered JSON data
 // function filterAndSaveJson(inputFile, outputFile) {
 //   // Read the JSON file
@@ -2311,5 +2383,6 @@ module.exports = {
     getSelectedFestivalsBasedOnSocialAccount,
     getSelectedFestivals,
     downloadStaffLoginDetails,
-    postCorrectionByClient
+    postCorrectionByClient,
+    getFinalBroadcast
 };
