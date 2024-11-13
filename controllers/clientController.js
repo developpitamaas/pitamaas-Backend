@@ -690,12 +690,12 @@ const getClientEnrollmentBySocialAccount = async (req, res) => {
 // Get idea uploader data by client id and SocialAccount
 const getIdeaUploaderByClientIdAndSocialAccount = async (req, res) => {
     try {
-        const { clientId, socialAccount } = req.body; // Extract clientId and socialAccount from request body
-
+        const { socialAccount } = req.body; // Extract socialAccount from request body
+        console.log('socialAccount', socialAccount);
         if (!socialAccount) {
             return res.status(400).json({
                 success: false,
-                message: 'clientId and socialAccount are required',
+                message: 'socialAccount are required',
             });
         }
 
@@ -1201,89 +1201,90 @@ const postApprovedByClient = async (req, res) => {
 const postRejectedByClient = async (req, res) => {
     try {
         const { clientId, socialAccount, postId, campaignName, rejectReason } = req.body;
-        console.log(clientId, socialAccount, postId, campaignName, rejectReason);
+        console.log('Received data:', clientId, socialAccount, postId, campaignName, rejectReason);
 
+        // Ensure all required fields are present
         if (!clientId || !socialAccount || !postId || !campaignName || !rejectReason) {
             return res.status(400).json({
                 success: false,
-                message: 'clientId, socialAccount, and postId are required'
+                message: 'clientId, socialAccount, postId, campaignName, and rejectReason are required'
             });
         }
 
         let pool = await sql.connect(config);
 
-        // First, get Key Manager and Designer IDs
-        let staffResult = await pool.request()
+        // Retrieve Key Manager and Designer IDs
+        const staffResult = await pool.request()
             .input('clientId', sql.Int, clientId)
             .input('socialAccount', sql.VarChar, socialAccount)
             .query('SELECT KeyManager, Designer FROM ClientEnrollment WHERE ClientId = @clientId AND SocialAccount = @socialAccount');
 
-        if (staffResult.recordset.length > 0) {
-            let { Designer, KeyManager } = staffResult.recordset[0];
-
-            // First, check the current status of the post
-            let postResult = await pool.request()
-                .input('clientId', sql.Int, clientId)
-                .input('socialAccount', sql.VarChar, socialAccount)
-                .input('postId', sql.Int, postId)
-                .query('SELECT UploadedFileStatus FROM IdeaUploader WHERE ClientId = @clientId AND SocialAccount = @socialAccount AND Id = @postId');
-
-            if (postResult.recordset.length > 0) {
-                let currentStatus = postResult.recordset[0].UploadedFileStatus;
-
-                if (currentStatus === null || currentStatus === 'Pending') {
-                    // Update the status to 'Done'
-                    await pool.request()
-                        .input('clientId', sql.Int, clientId)
-                        .input('socialAccount', sql.VarChar, socialAccount)
-                        .input('postId', sql.Int, postId)
-                        .input('uploadedFileStatus', sql.VarChar, 'rejected')
-                        .input('clientrejectionpost', sql.VarChar, rejectReason)
-                        .query('UPDATE IdeaUploader SET UploadedFileStatus = @uploadedFileStatus, clientrejectionpost = @clientrejectionpost WHERE ClientId = @clientId AND SocialAccount = @socialAccount AND Id = @postId');
-
-                    // Send notifications
-                    const notificationRecipients = [KeyManager, Designer];
-                    await sendNotifications(notificationRecipients, {
-                        clientId: clientId,
-                        postId: postId,
-                        designerId: Designer,
-                        keyManagerId: KeyManager,
-                        subject: 'Post Approved',
-                        message: `Campaign '${campaignName}' with Social Account '${socialAccount}' has been rejected and status updated to 'rejected'.`
-                    });
-
-                    return res.status(200).json({
-                        success: true,
-                        message: 'Post status updated to Done successfully and notifications saved'
-                    });
-                } else {
-                    return res.status(400).json({
-                        success: false,
-                        message: 'Post has already been updated or is not in a valid state for updating'
-                    });
-                }
-            } else {
-                return res.status(400).json({
-                    success: false,
-                    message: 'Post not found'
-                });
-            }
-        } else {
+        if (staffResult.recordset.length === 0) {
             return res.status(400).json({
                 success: false,
                 message: 'Client enrollment not found'
             });
         }
 
+        const { Designer, KeyManager } = staffResult.recordset[0];
+
+        // Check the current status of the post
+        const postResult = await pool.request()
+            .input('clientId', sql.Int, clientId)
+            .input('socialAccount', sql.VarChar, socialAccount)
+            .input('postId', sql.Int, postId)
+            .query('SELECT UploadedFileStatus FROM IdeaUploader WHERE ClientId = @clientId AND SocialAccount = @socialAccount AND Id = @postId');
+
+        if (postResult.recordset.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'Post not found'
+            });
+        }
+
+        const currentStatus = postResult.recordset[0].UploadedFileStatus;
+
+        if (currentStatus !== null && currentStatus !== 'Pending') {
+            return res.status(400).json({
+                success: false,
+                message: 'Post has already been updated or is not in a valid state for updating'
+            });
+        }
+
+        // Update the post status, client rejection, and rejection reason
+        await pool.request()
+            .input('clientId', sql.Int, clientId)
+            .input('socialAccount', sql.VarChar, socialAccount)
+            .input('postId', sql.Int, postId)
+            .input('uploadedFileStatus', sql.VarChar, 'Rejected') // Set status to 'Rejected'
+            .input('clientRejectionPost', sql.Bit, true) // Set client rejection flag to true
+            .input('rejectReason', sql.VarChar, rejectReason) // Add the rejection reason
+            .query('UPDATE IdeaUploader SET UploadedFileStatus = @uploadedFileStatus, clientrejectionpost = @clientRejectionPost, rejectReason = @rejectReason WHERE ClientId = @clientId AND SocialAccount = @socialAccount AND Id = @postId');
+
+        // Send notifications to the Key Manager and Designer
+        const notificationRecipients = [KeyManager, Designer];
+        await sendNotifications(notificationRecipients, {
+            clientId,
+            postId,
+            designerId: Designer,
+            keyManagerId: KeyManager,
+            subject: 'Post Rejected',
+            message: `Campaign '${campaignName}' with Social Account '${socialAccount}' has been rejected. Status updated to 'Rejected'.`
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: 'Post status updated to Rejected successfully and notifications sent'
+        });
+
     } catch (err) {
-        console.log(err);
+        console.log('Error in postRejectedByClient:', err);
         res.status(500).json({
             success: false,
             message: 'Internal server error'
         });
     }
 };
-
 
 const postCorrectedByClient = async (req, res) => {
     try {

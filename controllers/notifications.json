@@ -17188,5 +17188,85 @@
     "subject": "Post Approved",
     "message": "Campaign 'ChathPooja2024' with Social Account 'MUSCLIFE' has been rejected and status updated to 'rejected'.",
     "timestamp": "2024-11-05T09:58:05.065Z"
+  },
+  {
+    "recipient": 1199,
+    "clientId": 2705,
+    "designerId": 2290,
+    "campaignId": 86831,
+    "keyManagerId": 1199,
+    "subject": "Post Approved",
+    "message": "Campaign 'General' with Social Account 'Yuktam' has been approved and the status updated to 'Done'.",
+    "timestamp": "2024-11-12T12:27:21.679Z"
+  },
+  {
+    "recipient": 2290,
+    "clientId": 2705,
+    "designerId": 2290,
+    "campaignId": 86831,
+    "keyManagerId": 1199,
+    "subject": "Post Approved",
+    "message": "Campaign 'General' with Social Account 'Yuktam' has been approved and the status updated to 'Done'.",
+    "timestamp": "2024-11-12T12:27:21.679Z"
+  },
+  {
+    "recipient": 1199,
+    "clientId": 2705,
+    "designerId": 2290,
+    "campaignId": 86830,
+    "keyManagerId": 1199,
+    "subject": "Post Approved",
+    "message": "Campaign 'General' with Social Account 'Yuktam' has been approved and the status updated to 'Done'.",
+    "timestamp": "2024-11-12T12:29:20.332Z"
+  },
+  {
+    "recipient": 2290,
+    "clientId": 2705,
+    "designerId": 2290,
+    "campaignId": 86830,
+    "keyManagerId": 1199,
+    "subject": "Post Approved",
+    "message": "Campaign 'General' with Social Account 'Yuktam' has been approved and the status updated to 'Done'.",
+    "timestamp": "2024-11-12T12:29:20.332Z"
+  },
+  {
+    "recipient": 1199,
+    "clientId": 2705,
+    "designerId": 2290,
+    "campaignId": 86829,
+    "keyManagerId": 1199,
+    "subject": "Post Approved",
+    "message": "Campaign 'General' with Social Account 'Yuktam' has been approved and the status updated to 'Done'.",
+    "timestamp": "2024-11-12T12:36:11.305Z"
+  },
+  {
+    "recipient": 2290,
+    "clientId": 2705,
+    "designerId": 2290,
+    "campaignId": 86829,
+    "keyManagerId": 1199,
+    "subject": "Post Approved",
+    "message": "Campaign 'General' with Social Account 'Yuktam' has been approved and the status updated to 'Done'.",
+    "timestamp": "2024-11-12T12:36:11.305Z"
+  },
+  {
+    "recipient": 1199,
+    "clientId": 2705,
+    "designerId": 2290,
+    "campaignId": 86813,
+    "keyManagerId": 1199,
+    "subject": "Post Rejected",
+    "message": "Campaign 'Video' with Social Account 'Yuktam' has been rejected. Status updated to 'Rejected'.",
+    "timestamp": "2024-11-13T07:02:59.556Z"
+  },
+  {
+    "recipient": 2290,
+    "clientId": 2705,
+    "designerId": 2290,
+    "campaignId": 86813,
+    "keyManagerId": 1199,
+    "subject": "Post Rejected",
+    "message": "Campaign 'Video' with Social Account 'Yuktam' has been rejected. Status updated to 'Rejected'.",
+    "timestamp": "2024-11-13T07:02:59.556Z"
   }
 ]
