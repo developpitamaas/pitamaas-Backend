@@ -8,6 +8,8 @@ const newClientRoutes = require('./routes/newClientRoutes');
 const clientCredentialsRoutes = require('./routes/clientCredentialsRoutes');
 const Notification = require('./routes/Notifications');
 const Feedback = require('./routes/feedbackRoutes')
+const notificationRoutes = require('./routes/notificationRoutes'); 
+const GetAds = require('./routes/AdsCenterRoutes');
 
 const app = express();
 
@@ -20,9 +22,9 @@ app.use(cors());
 
 // MongoDB connection
 const mongoURI = 'mongodb+srv://sachinpitamaasweb:2U8iSnXE8YCrgo5p@cluster0.zj9x2jv.mongodb.net/Pitamaas' || 'mongodb://localhost:27017/Pitamaas';
-mongoose.connect(mongoURI)
-    .then(() => console.log('MongoDB connected'))
-    .catch(err => console.error('MongoDB connection error:', err));
+mongoose.connect(mongoURI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log('MongoDB connected'))
+  .catch(err => console.error('MongoDB connection error:', err));
 
 // Use the client routes
 app.use('/api', clientRoutes);
@@ -41,6 +43,12 @@ app.use('/api', Notification);
 
 // use the feedback 
 app.use('/api', Feedback);
+
+// use the notification routes
+app.use('/api', notificationRoutes);
+
+// use the ads routes
+app.use('/api', GetAds);
 
 // get request
 app.get('/', (req, res) => {

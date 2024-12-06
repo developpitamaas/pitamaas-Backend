@@ -1451,7 +1451,7 @@ const getUserLoginDetails = async (req, res) => {
     try {
         let pool = await sql.connect(config);
         let result = await pool.request()
-            .query('SELECT * FROM Broadcastmanagement ');
+            .query('SELECT * FROM  AddMonthlyAmount');
         res.json({
             data: result.recordset,
             count: result.recordset.length,
@@ -2271,6 +2271,8 @@ const getFinalBroadcast = async (req, res) => {
                 LEFT JOIN Broadcastmanagement  
                 ON IdeaUploader.id = Broadcastmanagement .UploaderId
                 WHERE IdeaUploader.socialAccount = @socialAccount
+                AND YEAR(finalBroadcast) = @selectedYear -- Filter by the selected year
+                AND MONTH(finalBroadcast) = @formattedMonth -- Filter by the selected month
             `);
 
         console.log(result);
