@@ -1447,22 +1447,83 @@ const getClientInfoByClientId = async (req, res) => {
     }
 }
 
+// const getUserLoginDetails = async (req, res) => {
+//     try {
+//         let pool = await sql.connect(config);
+//         let result = await pool.request()
+//             .query('SELECT * FROM  Addvouchar');
+//         res.json({
+//             data: result.recordset,
+//             count: result.recordset.length,
+//             success: true,
+//             message: 'Data fetched successfully'
+//         });
+//     }
+//     catch (err) {
+//         res.status(500).send(err.message);
+//     }
+// }
+
 const getUserLoginDetails = async (req, res) => {
     try {
+        const currentYear = new Date().getFullYear(); // Get the current year
+        const currentMonth = new Date().getMonth() + 1; // Get the current month (0-based index, so +1)
+
         let pool = await sql.connect(config);
         let result = await pool.request()
-            .query('SELECT * FROM  AddMonthlyAmount');
+            .query('SELECT * FROM Addvouchar');
+
+        // Filter the data to include only entries from the current year and month based on VoucharDate
+        const filteredData = result.recordset.filter(record => {
+            const voucharDate = new Date(record.VoucharDate);
+            return (
+                voucharDate.getFullYear() === currentYear &&
+                voucharDate.getMonth() + 1 === currentMonth
+            );
+        });
+
         res.json({
-            data: result.recordset,
-            count: result.recordset.length,
+            data: filteredData,
+            count: filteredData.length,
             success: true,
             message: 'Data fetched successfully'
         });
-    }
-    catch (err) {
+    } catch (err) {
         res.status(500).send(err.message);
     }
-}
+};
+
+
+
+// const getUserLoginDetails = async (req, res) => {
+//     try {
+//         const currentYear = new Date().getFullYear(); // Get the current year
+//         const currentMonth = new Date().getMonth() + 1; // Get the current month (0-based index, so +1)
+
+//         let pool = await sql.connect(config);
+//         let result = await pool.request()
+//             .query('SELECT * FROM AddMonthlyAmount');
+
+//         // Filter the data to include only entries from the current year and month
+//         const filteredData = result.recordset.filter(record => {
+//             const recordDate = new Date(record.createdOn);
+//             return (
+//                 recordDate.getFullYear() === currentYear &&
+//                 recordDate.getMonth() + 1 === currentMonth
+//             );
+//         });
+
+//         res.json({
+//             data: filteredData,
+//             count: filteredData.length,
+//             success: true,
+//             message: 'Data fetched successfully'
+//         });
+//     } catch (err) {
+//         res.status(500).send(err.message);
+//     }
+// };
+
 
 // Download staff login details as a JSON file
 const downloadStaffLoginDetails = async (req, res) => {
