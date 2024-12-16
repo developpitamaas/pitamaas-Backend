@@ -717,7 +717,7 @@ const getIdeaUploaderByClientIdAndSocialAccount = async (req, res) => {
         console.log('ideaUploaderResult', ideaUploaderResult);
         // Step 2: Check if there are 'General Video' entries with DesignerStatus = 'Done'
         const generalVideoEntries = ideaUploaderData.filter(
-            (entry) => entry.Type === 'General Video' && entry.DesignerStatus === 'Done'
+            (entry) => entry.Type === 'General Video' && entry.Type === 'Festival Video' && entry.DesignerStatus === 'Done'
         );
 
         // Step 3: If 'General Video' entries exist, fetch related VideoDetails for each entry
