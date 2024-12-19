@@ -688,6 +688,72 @@ const getClientEnrollmentBySocialAccount = async (req, res) => {
 // };
 
 // Get idea uploader data by client id and SocialAccount
+// const getIdeaUploaderByClientIdAndSocialAccount = async (req, res) => {
+//     try {
+//         const { socialAccount } = req.body; // Extract socialAccount from request body
+//         console.log('socialAccount', socialAccount);
+//         if (!socialAccount) {
+//             return res.status(400).json({
+//                 success: false,
+//                 message: 'socialAccount are required',
+//             });
+//         }
+
+//         let pool = await sql.connect(config);
+
+//         // Step 1: Fetch all data from IdeaUploader based on socialAccount
+//         let ideaUploaderResult = await pool.request()
+//             .input('socialAccount', sql.VarChar, socialAccount)
+//             .query(`
+//                 SELECT * 
+//                 FROM IdeaUploader 
+//                 WHERE SocialAccount = @socialAccount 
+//                 AND (UploadedFileStatus = 'Pending' OR UploadedFileStatus IS NULL)
+//                 AND CreativeStatus = 'Done'
+//                 ORDER BY Id DESC
+//             `);
+
+//         let ideaUploaderData = ideaUploaderResult.recordset;
+//         console.log('ideaUploaderResult', ideaUploaderResult);
+//         // Step 2: Check if there are 'General Video' entries with DesignerStatus = 'Done'
+//         const generalVideoEntries = ideaUploaderData.filter(
+//             (entry) => entry.Type === 'General Video' || entry.Type === 'Festival Video' && entry.DesignerStatus === 'Done'
+//         );
+
+//         // Step 3: If 'General Video' entries exist, fetch related VideoDetails for each entry
+//         for (const entry of generalVideoEntries) {
+//             const videoDetailsResult = await pool.request()
+//                 .input('uploaderId', sql.Int, entry.Id)
+//                 .query(`
+//                     SELECT * 
+//                     FROM VideoDetails 
+//                     WHERE UploaderId = @uploaderId
+//                 `);
+
+//             // Add VideoDetails data to the entry
+//             entry.VideoDetails = videoDetailsResult.recordset;
+//         }
+
+//         // Calculate count of 'General Video' entries with DesignerStatus 'Done'
+//         const generalVideoCount = generalVideoEntries.length;
+
+//         // Return the data with count information
+//         res.json({
+//             data: ideaUploaderData,
+//              generalVideoCount, // Count of 'General Video' entries
+//             count: ideaUploaderData.length, // Total count of fetched entries
+//             success: true,
+//             message: 'Data fetched successfully',
+//         });
+//     } catch (err) {
+//         console.error('Error fetching data:', err.message);
+//         res.status(500).json({
+//             success: false,
+//             message: 'Server error, please try again later.',
+//         });
+//     }
+// };
+
 const getIdeaUploaderByClientIdAndSocialAccount = async (req, res) => {
     try {
         const { socialAccount } = req.body; // Extract socialAccount from request body
@@ -695,7 +761,7 @@ const getIdeaUploaderByClientIdAndSocialAccount = async (req, res) => {
         if (!socialAccount) {
             return res.status(400).json({
                 success: false,
-                message: 'socialAccount are required',
+                message: 'socialAccount is required',
             });
         }
 
@@ -715,27 +781,29 @@ const getIdeaUploaderByClientIdAndSocialAccount = async (req, res) => {
 
         let ideaUploaderData = ideaUploaderResult.recordset;
         console.log('ideaUploaderResult', ideaUploaderResult);
-        // Step 2: Check if there are 'General Video' entries with DesignerStatus = 'Done'
-        const generalVideoEntries = ideaUploaderData.filter(
-            (entry) => entry.Type === 'General Video' || entry.Type === 'Festival Video' && entry.DesignerStatus === 'Done'
-        );
 
-        // Step 3: If 'General Video' entries exist, fetch related VideoDetails for each entry
-        for (const entry of generalVideoEntries) {
+        // Step 2: Process each entry to fetch its VideoUrl
+        for (const entry of ideaUploaderData) {
+            // Fetch VideoUrl for the current entry
             const videoDetailsResult = await pool.request()
                 .input('uploaderId', sql.Int, entry.Id)
                 .query(`
-                    SELECT * 
+                    SELECT TOP 1 VideoUrl 
                     FROM VideoDetails 
                     WHERE UploaderId = @uploaderId
+                    ORDER BY CreatedDate DESC
                 `);
 
-            // Add VideoDetails data to the entry
-            entry.VideoDetails = videoDetailsResult.recordset;
+            // Add VideoUrl directly to the entry (null if not found)
+            entry.VideoUrl = videoDetailsResult.recordset.length > 0
+                ? videoDetailsResult.recordset[0].VideoUrl
+                : null;
         }
 
         // Calculate count of 'General Video' entries with DesignerStatus 'Done'
-        const generalVideoCount = generalVideoEntries.length;
+        const generalVideoCount = ideaUploaderData.filter(
+            (entry) => (entry.Type === 'General Video' || entry.Type === 'Festival Video') && entry.DesignerStatus === 'Done'
+        ).length;
 
         // Return the data with count information
         res.json({
@@ -753,6 +821,7 @@ const getIdeaUploaderByClientIdAndSocialAccount = async (req, res) => {
         });
     }
 };
+
 
 const postCorrectionByClient = async (req, res) => {
     try {
@@ -2236,6 +2305,69 @@ const getNextMonthFestivals = async (req, res) => {
 // };
 
 
+// const getPostApprovedByClient = async (req, res) => {
+//     try {
+//         let { socialAccount } = req.params;
+//         let { month } = req.query; // Accept month from query parameters
+//         let selectedYear, selectedMonth;
+
+//         const currentDate = new Date();
+//         const currentYear = currentDate.getFullYear();
+
+//         // Check if the month is provided and valid, else default to the current month
+//         if (month && month >= 1 && month <= 12) {
+//             selectedMonth = month;
+//             selectedYear = currentYear;
+//         } else {
+//             selectedMonth = currentDate.getMonth() + 1; // JavaScript months are 0-indexed
+//             selectedYear = currentYear;
+//         }
+
+//         // Ensure that the month is always 2 digits (e.g., '05' for May)
+//         const formattedMonth = selectedMonth.toString().padStart(2, '0');
+
+//         // Formatted date for filtering (e.g., '2024-05')
+//         const formattedDate = `${selectedYear}-${formattedMonth}`;
+
+//         let pool = await sql.connect(config);
+//         let result = await pool.request()
+//             .input('socialAccount', sql.VarChar(50), socialAccount)
+//             .input('selectedYear', sql.Int, selectedYear)
+//             .input('formattedMonth', sql.Int, formattedMonth)
+//             .query(`
+//                 SELECT * 
+//                 FROM IdeaUploader 
+//                 WHERE SocialAccount = @socialAccount
+//                 AND UploadedFileStatus = 'Done'
+//                 AND YEAR(finalBroadcast) = @selectedYear -- Filter by the selected year
+//                 AND MONTH(finalBroadcast) = @formattedMonth -- Filter by the selected month
+//             `);
+
+//         console.log(result);
+
+//         // If records are found, send them back with a success message
+//         if (result.recordset.length > 0) {
+//             res.json({
+//                 data: result.recordset,
+//                 count: result.recordset.length,
+//                 success: true,
+//                 message: "Data fetched successfully"
+//             });
+//         } else {
+//             // If no records are found, return a message indicating that
+//             res.json({
+//                 data: [],
+//                 count: 0,
+//                 success: true,
+//                 message: "No records found for the given social account and status"
+//             });
+//         }
+//     } catch (err) {
+//         // Handle any errors that may occur during the process
+//         res.status(500).send({ message: err.message, success: false });
+//     }
+// };
+
 const getPostApprovedByClient = async (req, res) => {
     try {
         let { socialAccount } = req.params;
@@ -2257,9 +2389,6 @@ const getPostApprovedByClient = async (req, res) => {
         // Ensure that the month is always 2 digits (e.g., '05' for May)
         const formattedMonth = selectedMonth.toString().padStart(2, '0');
 
-        // Formatted date for filtering (e.g., '2024-05')
-        const formattedDate = `${selectedYear}-${formattedMonth}`;
-
         let pool = await sql.connect(config);
         let result = await pool.request()
             .input('socialAccount', sql.VarChar(50), socialAccount)
@@ -2274,32 +2403,104 @@ const getPostApprovedByClient = async (req, res) => {
                 AND MONTH(finalBroadcast) = @formattedMonth -- Filter by the selected month
             `);
 
-        console.log(result);
+        let ideaUploaderData = result.recordset;
 
-        // If records are found, send them back with a success message
-        if (result.recordset.length > 0) {
-            res.json({
-                data: result.recordset,
-                count: result.recordset.length,
-                success: true,
-                message: "Data fetched successfully"
-            });
-        } else {
-            // If no records are found, return a message indicating that
-            res.json({
-                data: [],
-                count: 0,
-                success: true,
-                message: "No records found for the given social account and status"
-            });
+        // Step 2: Process each entry to fetch its VideoUrl
+        for (const entry of ideaUploaderData) {
+            const videoDetailsResult = await pool.request()
+                .input('uploaderId', sql.Int, entry.Id)
+                .query(`
+                    SELECT TOP 1 VideoUrl 
+                    FROM VideoDetails 
+                    WHERE UploaderId = @uploaderId
+                    ORDER BY CreatedDate DESC
+                `);
+
+            entry.VideoUrl = videoDetailsResult.recordset.length > 0
+                ? videoDetailsResult.recordset[0].VideoUrl
+                : null;
         }
+
+        // Calculate count of 'General Video' entries with DesignerStatus 'Done'
+        const generalVideoCount = ideaUploaderData.filter(
+            (entry) => (entry.Type === 'General Video' || entry.Type === 'Festival Video') && entry.DesignerStatus === 'Done'
+        ).length;
+
+        // Return the data with count information
+        res.json({
+            data: ideaUploaderData,
+            generalVideoCount, // Count of 'General Video' entries
+            count: ideaUploaderData.length, // Total count of fetched entries
+            success: true,
+            message: ideaUploaderData.length > 0 ? "Data fetched successfully" : "No records found for the given social account and status",
+        });
     } catch (err) {
-        // Handle any errors that may occur during the process
+        console.error('Error fetching data:', err.message);
         res.status(500).send({ message: err.message, success: false });
     }
 };
 
+
 // get the finalBroadcast posts
+// const getFinalBroadcast = async (req, res) => {
+//     try {
+//         let { socialAccount } = req.params;
+//         let { month } = req.query; // Accept month from query parameters
+//         let selectedYear, selectedMonth;
+
+//         const currentDate = new Date();
+//         const currentYear = currentDate.getFullYear();
+
+//         // Check if the month is provided and valid, else default to the current month
+//         if (month && month >= 1 && month <= 12) {
+//             selectedMonth = month;
+//             selectedYear = currentYear;
+//         } else {
+//             selectedMonth = currentDate.getMonth() + 1; // JavaScript months are 0-indexed
+//             selectedYear = currentYear;
+//         }
+
+//         // Ensure that the month is always 2 digits (e.g., '05' for May)
+//         const formattedMonth = selectedMonth.toString().padStart(2, '0');
+
+//         let pool = await sql.connect(config);
+//         let result = await pool.request()
+//             .input('socialAccount', sql.VarChar(50), socialAccount)
+//             .input('selectedYear', sql.Int, selectedYear)
+//             .input('formattedMonth', sql.Int, formattedMonth)
+//             .query(`
+//                 SELECT * 
+//                 FROM IdeaUploader 
+//                 LEFT JOIN Broadcastmanagement  
+//                 ON IdeaUploader.id = Broadcastmanagement .UploaderId
+//                 WHERE IdeaUploader.socialAccount = @socialAccount
+//                 AND YEAR(finalBroadcast) = @selectedYear -- Filter by the selected year
+//                 AND MONTH(finalBroadcast) = @formattedMonth -- Filter by the selected month
+//             `);
+
+//         console.log(result);
+
+//         if (result.recordset.length > 0) {
+//             res.json({
+//                 data: result.recordset,
+//                 count: result.recordset.length,
+//                 success: true,
+//                 message: "Data fetched successfully"
+//             });
+//         } else {
+//             res.json({
+//                 data: [],
+//                 count: 0,
+//                 success: true,
+//                 message: "No records found for the given social account and date"
+//             });
+//         }
+//     } catch (err) {
+//         res.status(500).send({ message    : err.message, success: false });
+//     }
+// };
+
+
 const getFinalBroadcast = async (req, res) => {
     try {
         let { socialAccount } = req.params;
@@ -2322,6 +2523,8 @@ const getFinalBroadcast = async (req, res) => {
         const formattedMonth = selectedMonth.toString().padStart(2, '0');
 
         let pool = await sql.connect(config);
+
+        // Fetch entries from IdeaUploader with Broadcastmanagement joined
         let result = await pool.request()
             .input('socialAccount', sql.VarChar(50), socialAccount)
             .input('selectedYear', sql.Int, selectedYear)
@@ -2334,14 +2537,34 @@ const getFinalBroadcast = async (req, res) => {
                 WHERE IdeaUploader.socialAccount = @socialAccount
                 AND YEAR(finalBroadcast) = @selectedYear -- Filter by the selected year
                 AND MONTH(finalBroadcast) = @formattedMonth -- Filter by the selected month
+                AND UploadedFileStatus = 'Done'
             `);
 
-        console.log(result);
 
-        if (result.recordset.length > 0) {
+        let finalBroadcastData = result.recordset;
+
+        // Step 2: Process each entry to fetch its VideoUrl
+        for (const entry of finalBroadcastData) {
+            const videoDetailsResult = await pool.request()
+                .input('uploaderId', sql.Int, entry.Id)
+                .query(`
+                    SELECT TOP 1 VideoUrl 
+                    FROM VideoDetails 
+                    WHERE UploaderId = @uploaderId
+                    ORDER BY CreatedDate DESC
+                `);
+
+            // Add VideoUrl directly to the entry (null if not found)
+            entry.VideoUrl = videoDetailsResult.recordset.length > 0
+                ? videoDetailsResult.recordset[0].VideoUrl
+                : null;
+        }
+
+        // Return the data with count information
+        if (finalBroadcastData.length > 0) {
             res.json({
-                data: result.recordset,
-                count: result.recordset.length,
+                data: finalBroadcastData,
+                count: finalBroadcastData.length,
                 success: true,
                 message: "Data fetched successfully"
             });
@@ -2354,9 +2577,11 @@ const getFinalBroadcast = async (req, res) => {
             });
         }
     } catch (err) {
+        console.error('Error fetching data:', err.message);
         res.status(500).send({ message: err.message, success: false });
     }
 };
+
 
 // // Function to read, filter, and save the filtered JSON data
 // function filterAndSaveJson(inputFile, outputFile) {
