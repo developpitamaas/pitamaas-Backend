@@ -26,71 +26,6 @@ const generateCredentials = (clientId, socialAccount) => {
     };
 };
 
-// const getActiveClients = async (req, res) => {
-//     try {
-//         let pool = await sql.connect(config);
-//         let result = await pool.request().query(`
-//             SELECT ClientID, SocialAccount 
-//             FROM clientenrollment 
-//             WHERE Status = 'Active' 
-//             ORDER BY SocialAccount ASC
-//         `);
-
-//         const clients = result.recordset;
-
-//         if (clients.length === 0) {
-//             return res.status(404).json({
-//                 success: false,
-//                 message: 'No active clients found'
-//             });
-//         }
-
-//         const credentialMap = new Map();
-
-//         clients.forEach(client => {
-//             const { ClientID, SocialAccount } = client;
-
-//             if (ClientID === 2705) {
-//                 const credentials = generateCredentials(ClientID, SocialAccount);
-//                 credentialMap.set(`${ClientID}_${SocialAccount}`, {
-//                     clientId: ClientID,
-//                     socialAccounts: [SocialAccount],
-//                     credentials
-//                 });
-//                 return;
-//             }
-
-//             if (credentialMap.has(ClientID)) {
-//                 const existingData = credentialMap.get(ClientID);
-//                 if (!existingData.socialAccounts.includes(SocialAccount)) {
-//                     existingData.socialAccounts.push(SocialAccount);
-//                 }
-//             } else {
-//                 const credentials = generateCredentials(ClientID, SocialAccount);
-//                 credentialMap.set(ClientID, {
-//                     clientId: ClientID,
-//                     socialAccounts: [SocialAccount],
-//                     credentials
-//                 });
-//             }
-//         });
-
-//         const clientCredentials = Array.from(credentialMap.values());
-
-//         await ClientCredentials.insertMany(clientCredentials);
-
-//         res.json({
-//             data: clientCredentials,
-//             count: clientCredentials.length,
-//             success: true,
-//             message: 'Data fetched and credentials stored successfully'
-//         });
-//     } catch (err) {
-//         console.error('Error:', err);
-//         res.status(500).send(err.message);
-//     }
-// };
-
 const getActiveClients = async (req, res) => {
     try {
         let pool = await sql.connect(config);
@@ -114,6 +49,16 @@ const getActiveClients = async (req, res) => {
 
         clients.forEach(client => {
             const { ClientID, SocialAccount } = client;
+
+            if (ClientID === 2705) {
+                const credentials = generateCredentials(ClientID, SocialAccount);
+                credentialMap.set(`${ClientID}_${SocialAccount}`, {
+                    clientId: ClientID,
+                    socialAccounts: [SocialAccount],
+                    credentials
+                });
+                return;
+            }
 
             if (credentialMap.has(ClientID)) {
                 const existingData = credentialMap.get(ClientID);
@@ -145,6 +90,61 @@ const getActiveClients = async (req, res) => {
         res.status(500).send(err.message);
     }
 };
+
+// const getActiveClients = async (req, res) => {
+//     try {
+//         let pool = await sql.connect(config);
+//         let result = await pool.request().query(`
+//             SELECT ClientID, SocialAccount 
+//             FROM clientenrollment 
+//             WHERE Status = 'Active' 
+//             ORDER BY SocialAccount ASC
+//         `);
+
+//         const clients = result.recordset;
+
+//         if (clients.length === 0) {
+//             return res.status(404).json({
+//                 success: false,
+//                 message: 'No active clients found'
+//             });
+//         }
+
+//         const credentialMap = new Map();
+
+//         clients.forEach(client => {
+//             const { ClientID, SocialAccount } = client;
+
+//             if (credentialMap.has(ClientID)) {
+//                 const existingData = credentialMap.get(ClientID);
+//                 if (!existingData.socialAccounts.includes(SocialAccount)) {
+//                     existingData.socialAccounts.push(SocialAccount);
+//                 }
+//             } else {
+//                 const credentials = generateCredentials(ClientID, SocialAccount);
+//                 credentialMap.set(ClientID, {
+//                     clientId: ClientID,
+//                     socialAccounts: [SocialAccount],
+//                     credentials
+//                 });
+//             }
+//         });
+
+//         const clientCredentials = Array.from(credentialMap.values());
+
+//         await ClientCredentials.insertMany(clientCredentials);
+
+//         res.json({
+//             data: clientCredentials,
+//             count: clientCredentials.length,
+//             success: true,
+//             message: 'Data fetched and credentials stored successfully'
+//         });
+//     } catch (err) {
+//         console.error('Error:', err);
+//         res.status(500).send(err.message);
+//     }
+// };
 
 
 const login = async (req, res) => {

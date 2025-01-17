@@ -95,6 +95,6 @@ router.post('/store-selected-festival-and-remove-from-notifications', storeSelec
 router.get('/selected-festivals-based-on-social-account/:socialAccount', getSelectedFestivalsBasedOnSocialAccount);
 router.get('/selected-festivals', getSelectedFestivals);
 router.post('/post-correction-by-client', postCorrectionByClient);
-router.post('/final-broad-case/:socialAccount',getFinalBroadcast)
+router.get('/final-broad-case/:socialAccount',getFinalBroadcast)
 
 module.exports = router;
