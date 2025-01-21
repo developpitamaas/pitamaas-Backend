@@ -2398,7 +2398,8 @@ const getPostApprovedByClient = async (req, res) => {
                 SELECT * 
                 FROM IdeaUploader 
                 WHERE SocialAccount = @socialAccount
-                AND UploadedFileStatus = 'Done'
+                AND CreativeStatus = 'Done'
+                  AND (UploadedFileStatus = 'Pending' OR UploadedFileStatus IS NULL)
                 AND YEAR(finalBroadcast) = @selectedYear -- Filter by the selected year
                 AND MONTH(finalBroadcast) = @formattedMonth -- Filter by the selected month
             `);
@@ -2440,204 +2441,143 @@ const getPostApprovedByClient = async (req, res) => {
     }
 };
 
-
-// get the finalBroadcast posts
-// const getFinalBroadcast = async (req, res) => {
-//     try {
-//         let { socialAccount } = req.params;
-//         let { month } = req.query; // Accept month from query parameters
-//         let selectedYear, selectedMonth;
-
-//         const currentDate = new Date();
-//         const currentYear = currentDate.getFullYear();
-
-//         // Check if the month is provided and valid, else default to the current month
-//         if (month && month >= 1 && month <= 12) {
-//             selectedMonth = month;
-//             selectedYear = currentYear;
-//         } else {
-//             selectedMonth = currentDate.getMonth() + 1; // JavaScript months are 0-indexed
-//             selectedYear = currentYear;
-//         }
-
-//         // Ensure that the month is always 2 digits (e.g., '05' for May)
-//         const formattedMonth = selectedMonth.toString().padStart(2, '0');
-
-//         let pool = await sql.connect(config);
-//         let result = await pool.request()
-//             .input('socialAccount', sql.VarChar(50), socialAccount)
-//             .input('selectedYear', sql.Int, selectedYear)
-//             .input('formattedMonth', sql.Int, formattedMonth)
-//             .query(`
-//                 SELECT * 
-//                 FROM IdeaUploader 
-//                 LEFT JOIN Broadcastmanagement  
-//                 ON IdeaUploader.id = Broadcastmanagement .UploaderId
-//                 WHERE IdeaUploader.socialAccount = @socialAccount
-//                 AND YEAR(finalBroadcast) = @selectedYear -- Filter by the selected year
-//                 AND MONTH(finalBroadcast) = @formattedMonth -- Filter by the selected month
-//             `);
-
-//         console.log(result);
-
-//         if (result.recordset.length > 0) {
-//             res.json({
-//                 data: result.recordset,
-//                 count: result.recordset.length,
-//                 success: true,
-//                 message: "Data fetched successfully"
-//             });
-//         } else {
-//             res.json({
-//                 data: [],
-//                 count: 0,
-//                 success: true,
-//                 message: "No records found for the given social account and date"
-//             });
-//         }
-//     } catch (err) {
-//         res.status(500).send({ message    : err.message, success: false });
-//     }
-// };
-
-
-// const getFinalBroadcast = async (req, res) => {
-//     try {
-//         let { socialAccount } = req.params;
-//         let { month } = req.query; // Accept month from query parameters
-//         let selectedYear, selectedMonth;
-
-//         const currentDate = new Date();
-//         const currentYear = currentDate.getFullYear();
-
-//         // Check if the month is provided and valid, else default to the current month
-//         if (month && month >= 1 && month <= 12) {
-//             selectedMonth = month;
-//             selectedYear = currentYear;
-//         } else {
-//             selectedMonth = currentDate.getMonth() + 1; // JavaScript months are 0-indexed
-//             selectedYear = currentYear;
-//         }
-
-//         // Ensure that the month is always 2 digits (e.g., '05' for May)
-//         const formattedMonth = selectedMonth.toString().padStart(2, '0');
-
-//         let pool = await sql.connect(config);
-
-//         // Fetch entries from IdeaUploader with Broadcastmanagement joined
-//         let result = await pool.request()
-//             .input('socialAccount', sql.VarChar(50), socialAccount)
-//             .input('selectedYear', sql.Int, selectedYear)
-//             .input('formattedMonth', sql.Int, formattedMonth)
-//             .query(`
-//                 SELECT * 
-//                 FROM IdeaUploader 
-//                 LEFT JOIN Broadcastmanagement  
-//                 ON IdeaUploader.id = Broadcastmanagement .UploaderId
-//                 WHERE IdeaUploader.socialAccount = @socialAccount
-//                 AND YEAR(finalBroadcast) = @selectedYear -- Filter by the selected year
-//                 AND MONTH(finalBroadcast) = @formattedMonth -- Filter by the selected month
-//                 AND UploadedFileStatus = 'Done'
-//             `);
-
-
-//         let finalBroadcastData = result.recordset;
-
-//         // Step 2: Process each entry to fetch its VideoUrl
-//         for (const entry of finalBroadcastData) {
-//             const videoDetailsResult = await pool.request()
-//                 .input('uploaderId', sql.Int, entry.Id)
-//                 .query(`
-//                     SELECT TOP 1 VideoUrl 
-//                     FROM VideoDetails 
-//                     WHERE UploaderId = @uploaderId
-//                     ORDER BY CreatedDate DESC
-//                 `);
-
-//             // Add VideoUrl directly to the entry (null if not found)
-//             entry.VideoUrl = videoDetailsResult.recordset.length > 0
-//                 ? videoDetailsResult.recordset[0].VideoUrl
-//                 : null;
-//         }
-
-//         // Return the data with count information
-//         if (finalBroadcastData.length > 0) {
-//             res.json({
-//                 data: finalBroadcastData,
-//                 count: finalBroadcastData.length,
-//                 success: true,
-//                 message: "Data fetched successfully"
-//             });
-//         } else {
-//             res.json({
-//                 data: [],
-//                 count: 0,
-//                 success: true,
-//                 message: "No records found for the given social account and date"
-//             });
-//         }
-//     } catch (err) {
-//         console.error('Error fetching data:', err.message);
-//         res.status(500).send({ message: err.message, success: false });
-//     }
-// };
-
-
-// Get Final Broadcast Function
-async function getFinalBroadcast(req, res) {
+const getFinalBroadcast = async (req, res) => {
     try {
-        const startTime = process.hrtime.bigint();
-        const { socialAccount } = req.params;
-        const { month, page = 1, limit = 5 } = req.query;
+        let { socialAccount } = req.params;
+        let { month } = req.query; // Accept month from query parameters
+        let selectedYear, selectedMonth;
 
         const currentDate = new Date();
         const currentYear = currentDate.getFullYear();
-        const selectedMonth = (month && month >= 1 && month <= 12) ? month : currentDate.getMonth() + 1;
-        const offset = (page - 1) * limit;
 
-        const query = `
-            SELECT IU.*, VD.VideoUrl
-            FROM IdeaUploader IU
-            LEFT JOIN Broadcastmanagement BM ON IU.id = BM.UploaderId
-            LEFT JOIN (
-                SELECT UploaderId, MAX(VideoUrl) AS VideoUrl
-                FROM VideoDetails WITH (NOLOCK)
-                GROUP BY UploaderId
-            ) VD ON IU.id = VD.UploaderId
-            WHERE IU.socialAccount = @socialAccount
-              AND YEAR(finalBroadcast) = @currentYear
-              AND MONTH(finalBroadcast) = @selectedMonth
-              AND UploadedFileStatus = 'Done'
-            ORDER BY finalBroadcast DESC
-            OFFSET @offset ROWS
-            FETCH NEXT @limit ROWS ONLY
-        `;
+        // Check if the month is provided and valid, else default to the current month
+        if (month && month >= 1 && month <= 12) {
+            selectedMonth = month;
+            selectedYear = currentYear;
+        } else {
+            selectedMonth = currentDate.getMonth() + 1; // JavaScript months are 0-indexed
+            selectedYear = currentYear;
+        }
 
-        const pool = await sql.connect(config);
-        const result = await pool.request()
+        // Ensure that the month is always 2 digits (e.g., '05' for May)
+        const formattedMonth = selectedMonth.toString().padStart(2, '0');
+
+        let pool = await sql.connect(config);
+
+        // Fetch entries from IdeaUploader with Broadcastmanagement joined
+        let result = await pool.request()
             .input('socialAccount', sql.VarChar(50), socialAccount)
-            .input('currentYear', sql.Int, currentYear)
-            .input('selectedMonth', sql.Int, selectedMonth)
-            .input('limit', sql.Int, parseInt(limit))
-            .input('offset', sql.Int, parseInt(offset))
-            .query(query);
+            .input('selectedYear', sql.Int, selectedYear)
+            .input('formattedMonth', sql.Int, formattedMonth)
+            .query(`
+                SELECT * 
+                FROM IdeaUploader 
+                LEFT JOIN Broadcastmanagement  
+                ON IdeaUploader.id = Broadcastmanagement .UploaderId
+                WHERE IdeaUploader.socialAccount = @socialAccount
+                AND YEAR(finalBroadcast) = @selectedYear -- Filter by the selected year
+                AND MONTH(finalBroadcast) = @formattedMonth -- Filter by the selected month
+                AND UploadedFileStatus = 'Done'
+            `);
 
-        const finalBroadcastData = result.recordset;
-        const endTime = process.hrtime.bigint();
-        const durationMicroseconds = Number((endTime - startTime) / 1000n);
 
-        res.json({
-            data: finalBroadcastData,
-            count: finalBroadcastData.length,
-            success: true,
-            message: finalBroadcastData.length > 0 ? "Data fetched successfully" : "No records found for the given social account and date",
-            durationMicroseconds: durationMicroseconds
-        });
+        let finalBroadcastData = result.recordset;
+
+        // Step 2: Process each entry to fetch its VideoUrl
+        for (const entry of finalBroadcastData) {
+            const videoDetailsResult = await pool.request()
+                .input('uploaderId', sql.Int, entry.Id)
+                .query(`
+                    SELECT TOP 1 VideoUrl 
+                    FROM VideoDetails 
+                    WHERE UploaderId = @uploaderId
+                    ORDER BY CreatedDate DESC
+                `);
+
+            // Add VideoUrl directly to the entry (null if not found)
+            entry.VideoUrl = videoDetailsResult.recordset.length > 0
+                ? videoDetailsResult.recordset[0].VideoUrl
+                : null;
+        }
+
+        // Return the data with count information
+        if (finalBroadcastData.length > 0) {
+            res.json({
+                data: finalBroadcastData,
+                count: finalBroadcastData.length,
+                success: true,
+                message: "Data fetched successfully"
+            });
+        } else {
+            res.json({
+                data: [],
+                count: 0,
+                success: true,
+                message: "No records found for the given social account and date"
+            });
+        }
     } catch (err) {
         console.error('Error fetching data:', err.message);
         res.status(500).send({ message: err.message, success: false });
     }
-}
+};
+
+
+// Get Final Broadcast Function
+// async function getFinalBroadcast(req, res) {
+//     try {
+//         const startTime = process.hrtime.bigint();
+//         const { socialAccount } = req.params;
+//         const { month, page = 1, limit = 5 } = req.query;
+
+//         const currentDate = new Date();
+//         const currentYear = currentDate.getFullYear();
+//         const selectedMonth = (month && month >= 1 && month <= 12) ? month : currentDate.getMonth() + 1;
+//         const offset = (page - 1) * limit;
+
+//         const query = `
+//             SELECT IU.*, VD.VideoUrl
+//             FROM IdeaUploader IU
+//             LEFT JOIN Broadcastmanagement BM ON IU.id = BM.UploaderId
+//             LEFT JOIN (
+//                 SELECT UploaderId, MAX(VideoUrl) AS VideoUrl
+//                 FROM VideoDetails WITH (NOLOCK)
+//                 GROUP BY UploaderId
+//             ) VD ON IU.id = VD.UploaderId
+//             WHERE IU.socialAccount = @socialAccount
+//               AND YEAR(finalBroadcast) = @currentYear
+//               AND MONTH(finalBroadcast) = @selectedMonth
+//               AND UploadedFileStatus = 'Done'
+//             ORDER BY finalBroadcast DESC
+//             OFFSET @offset ROWS
+//             FETCH NEXT @limit ROWS ONLY
+//         `;
+
+//         const pool = await sql.connect(config);
+//         const result = await pool.request()
+//             .input('socialAccount', sql.VarChar(50), socialAccount)
+//             .input('currentYear', sql.Int, currentYear)
+//             .input('selectedMonth', sql.Int, selectedMonth)
+//             .input('limit', sql.Int, parseInt(limit))
+//             .input('offset', sql.Int, parseInt(offset))
+//             .query(query);
+
+//         const finalBroadcastData = result.recordset;
+//         const endTime = process.hrtime.bigint();
+//         const durationMicroseconds = Number((endTime - startTime) / 1000n);
+
+//         res.json({
+//             data: finalBroadcastData,
+//             count: finalBroadcastData.length,
+//             success: true,
+//             message: finalBroadcastData.length > 0 ? "Data fetched successfully" : "No records found for the given social account and date",
+//             durationMicroseconds: durationMicroseconds
+//         });
+//     } catch (err) {
+//         console.error('Error fetching data:', err.message);
+//         res.status(500).send({ message: err.message, success: false });
+//     }
+// }
 
 
 // // Function to read, filter, and save the filtered JSON data
