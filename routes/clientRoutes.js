@@ -31,6 +31,7 @@ const {
     sendFestivalEmail,
     updateFestivalData,
     getClientEnrollmentBySocialAccount,
+    getPostsPendingClientApproval,
     getPostApprovedByClient,
     getUserLoginDetails,
     getFestivalNotifications,
@@ -83,6 +84,7 @@ router.get('/send-monthly-notifications', sendFestivalEmail);
 router.post('/update-festival-data', updateFestivalData);
 router.get('/get-client-enrollment-by-social-account/:socialAccount', getClientEnrollmentBySocialAccount);
 router.get('/post-approved-by-client/:socialAccount', getPostApprovedByClient);
+router.get('/posts-pending-client-approval/:socialAccount', getPostsPendingClientApproval);
 router.get('/user-login-details', getUserLoginDetails);
 router.get('/festival-notifications', getFestivalNotifications);
 router.get('/budget-details/:socialAccount', getBudgetDetails);
@@ -95,6 +97,6 @@ router.post('/store-selected-festival-and-remove-from-notifications', storeSelec
 router.get('/selected-festivals-based-on-social-account/:socialAccount', getSelectedFestivalsBasedOnSocialAccount);
 router.get('/selected-festivals', getSelectedFestivals);
 router.post('/post-correction-by-client', postCorrectionByClient);
-router.get('/final-broad-case/:socialAccount',getFinalBroadcast)
+router.get('/final-broad-case/:socialAccount', getFinalBroadcast)
 
 module.exports = router;
