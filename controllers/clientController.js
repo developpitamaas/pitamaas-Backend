@@ -1191,93 +1191,167 @@ const sendNotifications = async (recipients, notification) => {
     }
 };
 
-// Example usage in the postApprovedByClient function
+// // Example usage in the postApprovedByClient function
+// const postApprovedByClient = async (req, res) => {
+//     try {
+//         const { clientId, socialAccount, postId, campaignName } = req.body;
+
+//         // Check if all required fields are provided
+//         if (!clientId || !socialAccount || !postId || !campaignName) {
+//             return res.status(400).json({
+//                 success: false,
+//                 message: 'clientId, socialAccount, postId, and campaignName are required'
+//             });
+//         }
+
+//         // Establish SQL connection
+//         let pool = await sql.connect(config);
+
+//         // Get Key Manager and Designer IDs from ClientEnrollment
+//         let staffResult = await pool.request()
+//             .input('clientId', sql.Int, clientId)
+//             .input('socialAccount', sql.VarChar, socialAccount)
+//             .query('SELECT KeyManager, Designer FROM ClientEnrollment WHERE ClientId = @clientId AND SocialAccount = @socialAccount');
+
+//         if (staffResult.recordset.length === 0) {
+//             return res.status(404).json({
+//                 success: false,
+//                 message: 'Client enrollment not found for the given clientId and socialAccount'
+//             });
+//         }
+
+//         let { Designer, KeyManager } = staffResult.recordset[0];
+
+//         // Check the current status of the post
+//         let postResult = await pool.request()
+//             .input('clientId', sql.Int, clientId)
+//             .input('socialAccount', sql.VarChar, socialAccount)
+//             .input('postId', sql.Int, postId)
+//             .query('SELECT UploadedFileStatus FROM IdeaUploader WHERE ClientId = @clientId AND SocialAccount = @socialAccount AND Id = @postId');
+
+//         if (postResult.recordset.length === 0) {
+//             return res.status(404).json({
+//                 success: false,
+//                 message: 'Post not found'
+//             });
+//         }
+
+//         let currentStatus = postResult.recordset[0].UploadedFileStatus;
+
+//         // Check if the status is null or not 'Done'
+//         if (currentStatus === null || currentStatus === 'Pending') {
+//             // Update the status to 'Done'
+//             await pool.request()
+//                 .input('clientId', sql.Int, clientId)
+//                 .input('socialAccount', sql.VarChar, socialAccount)
+//                 .input('postId', sql.Int, postId)
+//                 .input('uploadedFileStatus', sql.VarChar, 'Done')
+//                 .query('UPDATE IdeaUploader SET UploadedFileStatus = @uploadedFileStatus WHERE ClientId = @clientId AND SocialAccount = @socialAccount AND Id = @postId');
+
+//             // Send notifications to KeyManager and Designer
+//             const notificationRecipients = [KeyManager, Designer];
+//             await sendNotifications(notificationRecipients, {
+//                 clientId: clientId,
+//                 postId: postId,
+//                 designerId: Designer,
+//                 keyManagerId: KeyManager,
+//                 subject: 'Post Approved',
+//                 message: `Campaign '${campaignName}' with Social Account '${socialAccount}' has been approved and the status updated to 'Done'.`
+//             });
+
+//             return res.status(200).json({
+//                 success: true,
+//                 message: 'Post status updated to Done successfully and notifications sent'
+//             });
+//         } else {
+//             return res.status(400).json({
+//                 success: false,
+//                 message: 'Post is already updated or is not in a valid state for updating'
+//             });
+//         }
+
+//     } catch (err) {
+//         console.error('Error updating post:', err); // Log the error for debugging purposes
+//         res.status(500).json({
+//             success: false,
+//             message: 'Internal server error'
+//         });
+//     }
+// }
+
+
 const postApprovedByClient = async (req, res) => {
-    try {
-        const { clientId, socialAccount, postId, campaignName } = req.body;
+  try {
+    const { postId, socialAccount } = req.body;
 
-        // Check if all required fields are provided
-        if (!clientId || !socialAccount || !postId || !campaignName) {
-            return res.status(400).json({
-                success: false,
-                message: 'clientId, socialAccount, postId, and campaignName are required'
-            });
-        }
-
-        // Establish SQL connection
-        let pool = await sql.connect(config);
-
-        // Get Key Manager and Designer IDs from ClientEnrollment
-        let staffResult = await pool.request()
-            .input('clientId', sql.Int, clientId)
-            .input('socialAccount', sql.VarChar, socialAccount)
-            .query('SELECT KeyManager, Designer FROM ClientEnrollment WHERE ClientId = @clientId AND SocialAccount = @socialAccount');
-
-        if (staffResult.recordset.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: 'Client enrollment not found for the given clientId and socialAccount'
-            });
-        }
-
-        let { Designer, KeyManager } = staffResult.recordset[0];
-
-        // Check the current status of the post
-        let postResult = await pool.request()
-            .input('clientId', sql.Int, clientId)
-            .input('socialAccount', sql.VarChar, socialAccount)
-            .input('postId', sql.Int, postId)
-            .query('SELECT UploadedFileStatus FROM IdeaUploader WHERE ClientId = @clientId AND SocialAccount = @socialAccount AND Id = @postId');
-
-        if (postResult.recordset.length === 0) {
-            return res.status(404).json({
-                success: false,
-                message: 'Post not found'
-            });
-        }
-
-        let currentStatus = postResult.recordset[0].UploadedFileStatus;
-
-        // Check if the status is null or not 'Done'
-        if (currentStatus === null || currentStatus === 'Pending') {
-            // Update the status to 'Done'
-            await pool.request()
-                .input('clientId', sql.Int, clientId)
-                .input('socialAccount', sql.VarChar, socialAccount)
-                .input('postId', sql.Int, postId)
-                .input('uploadedFileStatus', sql.VarChar, 'Done')
-                .query('UPDATE IdeaUploader SET UploadedFileStatus = @uploadedFileStatus WHERE ClientId = @clientId AND SocialAccount = @socialAccount AND Id = @postId');
-
-            // Send notifications to KeyManager and Designer
-            const notificationRecipients = [KeyManager, Designer];
-            await sendNotifications(notificationRecipients, {
-                clientId: clientId,
-                postId: postId,
-                designerId: Designer,
-                keyManagerId: KeyManager,
-                subject: 'Post Approved',
-                message: `Campaign '${campaignName}' with Social Account '${socialAccount}' has been approved and the status updated to 'Done'.`
-            });
-
-            return res.status(200).json({
-                success: true,
-                message: 'Post status updated to Done successfully and notifications sent'
-            });
-        } else {
-            return res.status(400).json({
-                success: false,
-                message: 'Post is already updated or is not in a valid state for updating'
-            });
-        }
-
-    } catch (err) {
-        console.error('Error updating post:', err); // Log the error for debugging purposes
-        res.status(500).json({
-            success: false,
-            message: 'Internal server error'
-        });
+    // Check required fields
+    if (!postId || !socialAccount) {
+      return res.status(400).json({
+        success: false,
+        message: 'postId and socialAccount are required',
+      });
     }
-}
+
+    // Establish SQL connection
+    let pool = await sql.connect(config);
+
+    // Fetch the post directly
+    let postDataResult = await pool.request()
+      .input('postId', sql.Int, postId)
+      .input('socialAccount', sql.VarChar, socialAccount)
+      .query(`
+        SELECT UploadedFileStatus
+        FROM IdeaUploader
+        WHERE Id = @postId AND SocialAccount = @socialAccount
+      `);
+
+    if (postDataResult.recordset.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Post not found for the given postId and socialAccount',
+      });
+    }
+
+    let currentStatus = postDataResult.recordset[0].UploadedFileStatus;
+
+    if (currentStatus === null || currentStatus === 'Pending') {
+      // Update status to Done
+      await pool.request()
+        .input('uploadedFileStatus', sql.VarChar, 'Done')
+        .input('postId', sql.Int, postId)
+        .input('socialAccount', sql.VarChar, socialAccount)
+        .query(`
+          UPDATE IdeaUploader
+          SET UploadedFileStatus = @uploadedFileStatus
+          WHERE Id = @postId AND SocialAccount = @socialAccount
+        `);
+
+      // Optionally, send notifications here
+      // If you want to keep notifications, you'll need to decide:
+      // → how to get KeyManager and Designer without ClientId?
+      // Otherwise skip this section entirely
+
+      return res.status(200).json({
+        success: true,
+        message: 'Post status updated to Done successfully.',
+      });
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: 'Post is already updated or is not in a valid state for updating',
+      });
+    }
+
+  } catch (err) {
+    console.error('Error updating post:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+    });
+  }
+};
+
+
 const postRejectedByClient = async (req, res) => {
     try {
         const { clientId, socialAccount, postId, campaignName, rejectReason } = req.body;
