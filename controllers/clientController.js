@@ -837,8 +837,6 @@ const getIdeaUploaderByClientIdAndSocialAccount = async (req, res) => {
 const postCorrectionByClient = async (req, res) => {
     try {
         const { postId, clientId, socialAccount, reason } = req.body;
-        console.log('postId, clientId, socialAccount, reason:', postId, clientId, socialAccount, reason);
-
         // Validate required fields
         if (!postId || !clientId || !socialAccount || !reason) {
             return res.status(400).json({
@@ -871,10 +869,9 @@ const postCorrectionByClient = async (req, res) => {
             .input('reason', sql.VarChar, reason)
             .query(`
                 UPDATE IdeaUploader 
-                SET CorrectionRequired = 1, 
-                    CorrectionReason = @reason, 
+                SET CorrectionForDesigner=@reason, 
                     UploadedFileStatus = 'correction' 
-                WHERE Id = @postId AND ClientId = @clientId AND SocialAccount = @socialAccount
+                WHERE Id = @postId AND SocialAccount = @socialAccount
             `);
 
         // Check if the row was affected
