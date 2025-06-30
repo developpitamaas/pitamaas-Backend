@@ -836,12 +836,13 @@ const getIdeaUploaderByClientIdAndSocialAccount = async (req, res) => {
 
 const postCorrectionByClient = async (req, res) => {
     try {
-        const { postId, clientId, socialAccount, reason } = req.body;
+        const { postId, socialAccount, reason } = req.body;
+
         // Validate required fields
-        if (!postId || !clientId || !socialAccount || !reason) {
+        if (!postId || !socialAccount || !reason) {
             return res.status(400).json({
                 success: false,
-                message: 'postId, clientId, socialAccount, and reason fields are required.'
+                message: 'postId, socialAccount, and reason fields are required.'
             });
         }
 
@@ -850,9 +851,12 @@ const postCorrectionByClient = async (req, res) => {
 
         // Check if the 'CorrectionReason' column exists
         const columnCheck = await pool.request()
-            .query(`SELECT COLUMN_NAME 
-                    FROM INFORMATION_SCHEMA.COLUMNS 
-                    WHERE TABLE_NAME = 'IdeaUploader' AND COLUMN_NAME = 'CorrectionReason'`);
+            .query(`
+                SELECT COLUMN_NAME 
+                FROM INFORMATION_SCHEMA.COLUMNS 
+                WHERE TABLE_NAME = 'IdeaUploader' 
+                  AND COLUMN_NAME = 'CorrectionReason'
+            `);
 
         // If the column does not exist, add it
         if (columnCheck.recordset.length === 0) {
@@ -864,17 +868,19 @@ const postCorrectionByClient = async (req, res) => {
         // Update the IdeaUploader table
         let result = await pool.request()
             .input('postId', sql.Int, postId)
-            .input('clientId', sql.Int, clientId)
             .input('socialAccount', sql.VarChar, socialAccount)
             .input('reason', sql.VarChar, reason)
             .query(`
                 UPDATE IdeaUploader 
-                SET CorrectionForDesigner=@reason, 
-                    UploadedFileStatus = 'correction' 
-                WHERE Id = @postId AND SocialAccount = @socialAccount
+                SET 
+                    CorrectionForDesigner = @reason,
+                    UploadedFileStatus = 'correction',
+                    CorrectionReason = @reason
+                WHERE 
+                    Id = @postId
+                    AND SocialAccount = @socialAccount
             `);
-
-        // Check if the row was affected
+console.log('result.rowsAffected[0]', result.rowsAffected[0]);
         if (result.rowsAffected[0] > 0) {
             res.json({
                 success: true,
@@ -883,7 +889,7 @@ const postCorrectionByClient = async (req, res) => {
         } else {
             res.status(404).json({
                 success: false,
-                message: 'No record found with the specified postId, clientId, and socialAccount.'
+                message: 'No record found with the specified postId and socialAccount.'
             });
         }
     } catch (err) {
