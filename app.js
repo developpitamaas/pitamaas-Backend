@@ -10,6 +10,7 @@ const Notification = require('./routes/Notifications');
 const Feedback = require('./routes/feedbackRoutes')
 const notificationRoutes = require('./routes/notificationRoutes'); 
 const GetAds = require('./routes/AdsCenterRoutes');
+const PostRoute = require('./routes/postRoutes');
 
 const app = express();
 
@@ -49,6 +50,9 @@ app.use('/api', notificationRoutes);
 
 // use the ads routes
 app.use('/api', GetAds);
+
+// use the post routes
+app.use('/post', PostRoute);
 
 // get request
 app.get('/', (req, res) => {
