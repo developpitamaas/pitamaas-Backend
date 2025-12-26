@@ -1484,7 +1484,7 @@ const postCorrectedByClient = async (req, res) => {
                         .input('postId', sql.Int, postId)
                         .input('uploadedFileStatus', sql.VarChar, 'correction')
                         .input('correctionReason', sql.VarChar, correctionReason)
-                        .query('UPDATE IdeaUploader SET UploadedFileStatus = @uploadedFileStatus, clientcorrectionpost = @correctionReason WHERE ClientId = @clientId AND SocialAccount = @socialAccount AND Id = @postId');
+                        .query('UPDATE IdeaUploader SET UploadedFileStatus = @uploadedfileApproveddateStatus, clientcorrectionpost = @correctionReason WHERE ClientId = @clientId AND SocialAccount = @socialAccount AND Id = @postId');
 
                     // Send notifications
                     const notificationRecipients = [KeyManager, Designer];
